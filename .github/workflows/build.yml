@@ -40,7 +40,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
+          # Don't cache here - will cache manually after android folder exists
 
       # 4️⃣ Setup Android SDK
       - name: Setup Android SDK
@@ -49,19 +49,7 @@ jobs:
       - name: Accept Android licenses
         run: yes | sdkmanager --licenses || true
 
-      # 5️⃣ Cache Gradle (with fallback)
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
-        continue-on-error: true
-
-      # 6️⃣ Install dependencies with multiple fallbacks
+      # 5️⃣ Install dependencies with multiple fallbacks
       - name: Install dependencies
         run: |
           echo "🧩 Installing dependencies..."
@@ -91,14 +79,14 @@ jobs:
           npm install
         continue-on-error: false
 
-      # 7️⃣ Clean Android folder (prevent conflicts)
+      # 6️⃣ Clean Android folder (prevent conflicts)
       - name: Clean Android folder
         run: |
           echo "🧹 Cleaning Android folder..."
           rm -rf android ios
           echo "✅ Cleaned successfully"
 
-      # 8️⃣ Expo Prebuild with multiple fallbacks
+      # 7️⃣ Expo Prebuild with multiple fallbacks
       - name: Expo prebuild (with fallbacks)
         run: |
           echo "🏗️ Running Expo prebuild..."
@@ -127,6 +115,19 @@ jobs:
           
           echo "❌ All prebuild attempts failed"
           exit 1
+
+      # 8️⃣ Cache Gradle (AFTER android folder exists)
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            android/.gradle
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+        continue-on-error: true
 
       # 9️⃣ Verify Android folder was created
       - name: Verify Android folder
